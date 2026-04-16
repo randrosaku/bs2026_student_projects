@@ -46,13 +46,17 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
 
         # ── MACD ──────────────────────────────────────────────────────────────
         df.ta.macd(fast=12, slow=26, signal=9, append=True)
-        macd_col  = [c for c in df.columns if c.startswith("MACD_") and not c.startswith("MACDs_") and not c.startswith("MACDh_")]
+        macd_col  = [c for c in df.columns if c.startswith("MACD_")
+                     and not c.startswith("MACDs_") and not c.startswith("MACDh_")]
         macds_col = [c for c in df.columns if c.startswith("MACDs_")]
         macdh_col = [c for c in df.columns if c.startswith("MACDh_")]
         if macd_col:  df.rename(columns={macd_col[0]: "macd"}, inplace=True)
         if macds_col: df.rename(columns={macds_col[0]: "macd_signal"}, inplace=True)
-        if macdh_col: df.rename(columns={macdh_col[0]: "macd_hist"}, inplace=True)
-        else: df["macd_hist"] = df.get("macd", 0) - df.get("macd_signal", 0)
+        if macdh_col:
+            df.rename(columns={macdh_col[0]: "macd_hist"}, inplace=True)
+        else:
+            df["macd_hist"] = df.get("macd", pd.Series(0, index=df.index)) - \
+                              df.get("macd_signal", pd.Series(0, index=df.index))
 
         # ── Bollinger Bands ───────────────────────────────────────────────────
         df.ta.bbands(length=20, append=True)
@@ -108,19 +112,19 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
 
     else:
         # ── Manual fallbacks ──────────────────────────────────────────────────
-        df["rsi"]        = _manual_rsi(df["close"], 14)
-        df["macd"], df["macd_signal"] = _manual_macd(df["close"])
-        df["macd_hist"]  = df["macd"] - df["macd_signal"]
-        df["ema_9"]      = df["close"].ewm(span=9).mean()
-        df["ema_21"]     = df["close"].ewm(span=21).mean()
+        df["rsi"]                        = _manual_rsi(df["close"], 14)
+        df["macd"], df["macd_signal"]    = _manual_macd(df["close"])
+        df["macd_hist"]                  = df["macd"] - df["macd_signal"]
+        df["ema_9"]                      = df["close"].ewm(span=9).mean()
+        df["ema_21"]                     = df["close"].ewm(span=21).mean()
         df["bb_upper"], df["bb_lower"], df["bb_width"] = _manual_bbands(df["close"])
-        df["atr"]        = _manual_atr(df)
-        df["roc"]        = df["close"].pct_change(10)
-        df["willr"]      = _manual_willr(df, 14)
-        df["stoch_k"], df["stoch_d"] = _manual_stoch(df, 14)
-        df["obv_norm"]   = _manual_obv(df)
+        df["atr"]                        = _manual_atr(df)
+        df["roc"]                        = df["close"].pct_change(10)
+        df["willr"]                      = _manual_willr(df, 14)
+        df["stoch_k"], df["stoch_d"]     = _manual_stoch(df, 14)
+        df["obv_norm"]                   = _manual_obv(df)
 
-    # ── Derived from indicators ───────────────────────────────────────────────
+    # ── Derived cross-indicator features ─────────────────────────────────────
     df["ema_cross"] = df["ema_9"] - df["ema_21"]
 
     # ── Target label ─────────────────────────────────────────────────────────
@@ -131,9 +135,9 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(missing)
 
+    # ── Clean inf and nan before returning ───────────────────────────────────
+    df[FEATURE_COLS] = df[FEATURE_COLS].replace([np.inf, -np.inf], np.nan)
     df.dropna(subset=FEATURE_COLS + ["target"], inplace=True)
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df.dropna(subset=FEATURE_COLS, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
     return df
@@ -142,11 +146,18 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
 def normalize_features(df: pd.DataFrame, scaler=None):
     from sklearn.preprocessing import StandardScaler
     df = df.copy()
+
+    # Sanitize before normalizing
+    df[FEATURE_COLS] = df[FEATURE_COLS].replace([np.inf, -np.inf], np.nan)
+    df[FEATURE_COLS] = df[FEATURE_COLS].fillna(0)
+
+    # Always pass .values to avoid sklearn feature name warnings
     if scaler is None:
         scaler = StandardScaler()
-        df[FEATURE_COLS] = scaler.fit_transform(df[FEATURE_COLS])
+        df[FEATURE_COLS] = scaler.fit_transform(df[FEATURE_COLS].values)
     else:
-        df[FEATURE_COLS] = scaler.transform(df[FEATURE_COLS])
+        df[FEATURE_COLS] = scaler.transform(df[FEATURE_COLS].values)
+
     return df, scaler
 
 
@@ -188,11 +199,13 @@ def _manual_bbands(series: pd.Series, period: int = 20):
 
 
 def _manual_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
-    high, low, close = df["high"], df["low"], df["close"].shift(1)
+    high  = df["high"]
+    low   = df["low"]
+    close = df["close"].shift(1)
     tr = pd.concat([
         high - low,
         (high - close).abs(),
-        (low - close).abs()
+        (low  - close).abs()
     ], axis=1).max(axis=1)
     return tr.rolling(period).mean()
 
