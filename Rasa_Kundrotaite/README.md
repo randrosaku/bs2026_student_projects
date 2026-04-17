@@ -69,6 +69,10 @@ Structured list of obligations
 1. Create environment
 ```
 conda env create -f env.yml
+```
+
+Activate it
+```
 conda activate lo_extraction
 ```
 2. Run the application

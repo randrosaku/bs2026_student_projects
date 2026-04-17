@@ -37,10 +37,6 @@ Extracted obligations can be downloaded as a CSV for further processing.
 | TF-IDF + K-Means clustering | Lightweight, interpretable, no embeddings API required |
 | Disk-cached extraction | Avoids re-querying the LLM on page refresh |
 
-## Results
-
-The system was validated on the EU AI Act, producing a labelled CSV of obligations with actor, action, modality, condition, and verbatim source span. The analysis page revealed that the bulk of obligations fall on *providers* and *deployers*, with *shall* being the dominant modality, and that obligations cluster thematically around conformity assessment, transparency, and risk management.
-
 
 ## Conclusion
 The project demonstrates that LLM-based obligation extraction, when combined with schema enforcement and interactive analytics, can significantly accelerate legal text analysis. Future work could extend the extraction prompt to capture cross-references and article citations, and replace TF-IDF clustering with sentence-transformer embeddings for richer semantic grouping.
