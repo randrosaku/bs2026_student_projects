@@ -1,3 +1,3 @@
 # Arturas Sotnicenko - Data Analytics Workspace
 
-Contains Jupyter notebook for Lithuanian macroeconomic time series analysis.
+Contains Jupyter notebooks for longitudinal macroeconomic indicator analysis notebooks and a web application for visualizing the data.
