@@ -57,11 +57,11 @@ Structured list of obligations
 │   |-- extraction_logic.py     # core extraction function
 │   |-- highlighter.py          # highlighting logic
 │   |-- chunker.py              # chunking logic
-|-- notebooks/                  # experimentation & analysis
+|-- pages/
+|   |-- Analysis.py             # data analysis page
 |-- env.yml                     # conda environment
 |-- models.py                   # Pydantic models
 |-- app.py                      # main app
-|-- README.md
 ```
 ---
 
@@ -75,6 +75,7 @@ conda activate lo_extraction
 ```
 streamlit run app.py
 ```
+3. Upload the document, extract obligations, and do data analysis
 
 ---
 ### Author
