@@ -106,7 +106,7 @@ with col1:
     )
     fig.update_layout(showlegend=False, margin=dict(t=50, b=0, l=0, r=0))
     fig.update_traces(hovertemplate="%{y}<br>%{x} obligations<extra></extra>")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with col2:
     para_counts = df["paragraph"].value_counts().sort_index().reset_index()
@@ -121,7 +121,7 @@ with col2:
     )
     fig.update_layout(margin=dict(t=50, b=0, l=0, r=0))
     fig.update_traces(hovertemplate="Paragraph %{x}<br>%{y} obligations<extra></extra>")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 col3, col4 = st.columns(2)
@@ -154,7 +154,7 @@ with col3:
     fig.update_layout(
         showlegend=True, legend_title_text="Modality", margin=dict(t=50, b=0, l=0, r=0)
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with col4:
     cond_counts = (
@@ -179,7 +179,7 @@ with col4:
         hovertemplate="%{label}<br>%{value} obligations (%{percent})<extra></extra>",
     )
     fig.update_layout(showlegend=True, margin=dict(t=50, b=0, l=0, r=0))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 st.markdown("### 2. Semantic Clustering")
 N_CLUSTERS = st.slider("Number of clusters", 2, 10, 5)
@@ -225,7 +225,7 @@ with col5:
     )
     fig.update_layout(showlegend=False, margin=dict(t=50, b=0, l=0, r=0))
     fig.update_traces(hovertemplate="%{y}<br>%{x} obligations<extra></extra>")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with col6:
     pca = PCA(n_components=2, random_state=42)

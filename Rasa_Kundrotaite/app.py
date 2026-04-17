@@ -87,11 +87,11 @@ with left:
         else:
             c1, c2 = st.columns(2)
             with c1:
-                if st.button("Select all", use_container_width=True):
+                if st.button("Select all", width="stretch"):
                     st.session_state.selected = set(range(len(chunks)))
                     st.rerun()
             with c2:
-                if st.button("Deselect all", use_container_width=True):
+                if st.button("Deselect all", width="stretch"):
                     st.session_state.selected = set()
                     st.rerun()
 
@@ -119,9 +119,7 @@ with left:
                         f"</div>",
                         unsafe_allow_html=True,
                     )
-                    if st.button(
-                        f"Select #{i+1}", key=f"tog_{i}", use_container_width=True
-                    ):
+                    if st.button(f"Select #{i+1}", key=f"tog_{i}", width="stretch"):
                         sel = st.session_state.selected
                         sel.discard(i) if i in sel else sel.add(i)
                         st.rerun()
@@ -130,7 +128,7 @@ with left:
             if st.button(
                 "Extract obligations",
                 disabled=(len(st.session_state.selected) == 0),
-                use_container_width=True,
+                width="stretch",
                 type="primary",
             ):
                 to_process = sorted(st.session_state.selected)
@@ -203,7 +201,7 @@ with right:
                 data=df.to_csv(index=False).encode("utf-8"),
                 file_name="obligations.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
 
         with st.container(height=750, border=False):
@@ -222,7 +220,6 @@ with right:
                         modality = html.escape(obl.get("modality", "-"))
                         cond = html.escape(obl.get("condition", ""))
                         span = html.escape(obl.get("span", ""))
-                        rationale = html.escape(obl.get("rationale", ""))
 
                         cond_row = (
                             f"<div class='obl-row'><span class='obl-lbl'>Condition</span>"
@@ -231,12 +228,6 @@ with right:
                             else ""
                         )
                         src_row = f"<div class='obl-src'>{span}</div>" if span else ""
-                        rationale_row = (
-                            f"<div class='obl-row'><span class='obl-lbl'>Rationale</span>"
-                            f"<span class='obl-val'>{rationale}</span></div>"
-                            if rationale
-                            else ""
-                        )
 
                         obl_cards_html += (
                             f"<div class='obl-card obl-c{cc}'>"
@@ -246,7 +237,6 @@ with right:
                             f"<div class='obl-row'><span class='obl-lbl'>Modality</span><span class='obl-val mod-pill'>{modality}</span></div>"
                             f"<div class='obl-row'><span class='obl-lbl'>Action</span><span class='obl-val'>{action}</span></div>"
                             f"{cond_row}"
-                            f"{rationale_row}"
                             f"{src_row}"
                             f"</div>"
                             f"</div>"
