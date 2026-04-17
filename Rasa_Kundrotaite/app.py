@@ -1,3 +1,4 @@
+import html
 import logging
 import streamlit as st
 import pandas as pd
@@ -5,8 +6,14 @@ from pathlib import Path
 import pdfplumber
 
 from utils.chunker import chunk_by_paragraph
-from utils.extraction_logic import extract_obligations
+from utils.extraction_logic import extract_obligations as _extract_obligations
 from utils.highlighter import highlight_text
+
+
+@st.cache_data(show_spinner=False, persist="disk")
+def extract_obligations(chunk: str) -> list[dict]:
+    return _extract_obligations(chunk)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,7 +25,7 @@ logger = logging.getLogger(__name__)
 st.set_page_config(
     page_title="Legal Obligation Extractor",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 with open(Path(__file__).parent / "ui/styles.css") as f:
@@ -99,7 +106,7 @@ with left:
                     is_sel = i in st.session_state.selected
                     has_res = i in st.session_state.results
                     sel_cls = "para-span selected" if is_sel else "para-span"
-                    preview = chunk[:300].replace("<", "&lt;").replace(">", "&gt;")
+                    preview = html.escape(chunk[:300])
                     if len(chunk) > 300:
                         preview += "…"
                     done_badge = '<span class="done-badge">✓</span>' if has_res else ""
@@ -127,9 +134,21 @@ with left:
                 type="primary",
             ):
                 to_process = sorted(st.session_state.selected)
+                progress = st.progress(0, text="Extracting obligations…")
                 for step, idx in enumerate(to_process):
-                    obls = extract_obligations(st.session_state.chunks[idx])
-                    logger.info(f"Extracted {len(obls)} obligations in {step+1} steps")
+                    progress.progress(
+                        (step + 1) / len(to_process),
+                        text=f"Processing paragraph {idx + 1}… ({step + 1}/{len(to_process)})",
+                    )
+                    try:
+                        obls = extract_obligations(st.session_state.chunks[idx])
+                    except Exception as e:
+                        logger.error("Extraction failed for chunk %d: %s", idx + 1, e)
+                        st.error(f"Paragraph {idx + 1}: extraction failed — {e}")
+                        continue
+                    logger.info(
+                        "Extracted %d obligations from chunk %d", len(obls), idx + 1
+                    )
                     spans = [o["span"] for o in obls if o.get("span")]
                     st.session_state.results[idx] = {
                         "obligations": obls,
@@ -137,6 +156,7 @@ with left:
                             st.session_state.chunks[idx], spans
                         ),
                     }
+                progress.empty()
                 st.rerun()
 
 
@@ -197,15 +217,12 @@ with right:
                 else:
                     for j, obl in enumerate(obls):
                         cc = j % 5
-                        actor = obl.get("actor", "-")
-                        action = obl.get("action", "-")
-                        modality = obl.get("modality", "-")
-                        cond = obl.get("condition", "")
-                        span = (
-                            obl.get("span", "")
-                            .replace("<", "&lt;")
-                            .replace(">", "&gt;")
-                        )
+                        actor = html.escape(obl.get("actor", "-"))
+                        action = html.escape(obl.get("action", "-"))
+                        modality = html.escape(obl.get("modality", "-"))
+                        cond = html.escape(obl.get("condition", ""))
+                        span = html.escape(obl.get("span", ""))
+                        rationale = html.escape(obl.get("rationale", ""))
 
                         cond_row = (
                             f"<div class='obl-row'><span class='obl-lbl'>Condition</span>"
@@ -214,6 +231,12 @@ with right:
                             else ""
                         )
                         src_row = f"<div class='obl-src'>{span}</div>" if span else ""
+                        rationale_row = (
+                            f"<div class='obl-row'><span class='obl-lbl'>Rationale</span>"
+                            f"<span class='obl-val'>{rationale}</span></div>"
+                            if rationale
+                            else ""
+                        )
 
                         obl_cards_html += (
                             f"<div class='obl-card obl-c{cc}'>"
@@ -223,6 +246,7 @@ with right:
                             f"<div class='obl-row'><span class='obl-lbl'>Modality</span><span class='obl-val mod-pill'>{modality}</span></div>"
                             f"<div class='obl-row'><span class='obl-lbl'>Action</span><span class='obl-val'>{action}</span></div>"
                             f"{cond_row}"
+                            f"{rationale_row}"
                             f"{src_row}"
                             f"</div>"
                             f"</div>"
